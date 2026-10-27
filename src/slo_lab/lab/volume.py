@@ -12,7 +12,8 @@ from slo_lab.lab.traffic import TEST_CARD, TEST_EMAIL, TrafficPlan, TrafficResul
 
 RAW_CONFIG = "./observability/collector/gateway.raw.yaml"
 PROTECTED_CONFIG = "./observability/collector/gateway.yaml"
-SETTLE_SECONDS = 45.0
+SETTLE_SECONDS = 30.0
+QUIET_TIMEOUT_SECONDS = 300.0
 SEARCH_LIMIT = 20_000
 SAMPLE_BODIES = 10
 ORDINARY_SAMPLE = 300
@@ -110,6 +111,7 @@ class VolumeScenario:
         settle_seconds: float = SETTLE_SECONDS,
         gateway_ready: Callable[[], bool] = lambda: True,
         ready_timeout_seconds: float = 900.0,
+        quiet_interval_seconds: float = 15.0,
     ) -> None:
         """Take the collaborators and the size of the traffic."""
         self._compose = compose
@@ -123,6 +125,7 @@ class VolumeScenario:
         self._settle = settle_seconds
         self._gateway_ready = gateway_ready
         self._ready_timeout = ready_timeout_seconds
+        self._quiet_interval = quiet_interval_seconds
 
     def run(self) -> VolumeReport:
         """Run the raw pass, then the protected pass."""
@@ -136,6 +139,19 @@ class VolumeScenario:
                 raise TimeoutError("the gateway did not report healthy in time")
             time.sleep(3)
 
+    def _wait_until_ingestion_is_quiet(self) -> None:
+        """Wait out the sampler's decision wait and the exporters' batching: at least ``settle`` seconds, then until
+        Tempo's accepted-bytes counter has not moved for two readings (or five minutes have passed)."""
+        time.sleep(self._settle)
+        previous = self._tempo.bytes_received()
+        deadline = time.monotonic() + QUIET_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            time.sleep(self._quiet_interval)
+            current = self._tempo.bytes_received()
+            if current == previous:
+                return
+            previous = current
+
     def _pass(self, config: str) -> PassResult:
         self._log(f"pass with {config}")
         self._compose.use_gateway_config(config)
@@ -143,7 +159,7 @@ class VolumeScenario:
         trace_before, log_before = self._tempo.bytes_received(), self._loki.bytes_received()
         traffic = self._send(TrafficPlan(self._url, self._requests, self._seed, rate_per_second=80.0))
         self._log(f"  sent {traffic.sent} requests, statuses {dict(sorted(traffic.statuses.items()))}")
-        time.sleep(self._settle)
+        self._wait_until_ingestion_is_quiet()
         trace_bytes = self._tempo.bytes_received() - trace_before
         log_bytes = self._loki.bytes_received() - log_before
         window = (traffic.started_at - 5, time.time() + 5)

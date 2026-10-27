@@ -112,14 +112,20 @@ class FakeTempo:
 
     def __init__(self, compose):
         self.compose = compose
-        self.bytes = 0.0
+        self.base = 0.0
+        self.reads_in_pass = 0
+        self.config = None
 
     def _raw(self):
         return self.compose.configs[-1] == RAW_CONFIG
 
     def bytes_received(self):
-        self.bytes += 1000.0 if self._raw() else 100.0
-        return self.bytes
+        """The first reading of a pass is the baseline; every later one includes the pass's bytes and then stays put."""
+        if self.config != self.compose.configs[-1]:
+            self.config, self.reads_in_pass = self.compose.configs[-1], 0
+            self.base += 10_000.0
+        self.reads_in_pass += 1
+        return self.base if self.reads_in_pass == 1 else self.base + (1000.0 if self._raw() else 100.0)
 
     def trace_json(self, trace_id):
         if not self._raw() and trace_id.startswith("o"):
@@ -167,6 +173,7 @@ def test_the_volume_scenario_compares_a_raw_gateway_with_a_protected_one():
         send=_fake_send,
         log=lambda _: None,
         settle_seconds=0.0,
+        quiet_interval_seconds=0.0,
     )
     report = scenario.run()
     assert compose.configs == [RAW_CONFIG, PROTECTED_CONFIG]
@@ -339,7 +346,7 @@ def test_the_volume_scenario_waits_for_the_gateway_before_sending_and_gives_up_a
 
     VolumeScenario(
         compose, FakeTempo(compose), FakeLoki(compose), "http://x", 25,
-        send=send, log=lambda _: None, settle_seconds=0.0, gateway_ready=ready,
+        send=send, log=lambda _: None, settle_seconds=0.0, quiet_interval_seconds=0.0, gateway_ready=ready,
     ).run()  # fmt: skip
     assert polls_before_each_send == [3, 4]
     never = VolumeScenario(
