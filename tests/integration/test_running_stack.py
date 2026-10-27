@@ -73,7 +73,8 @@ def test_prometheus_loaded_the_generated_burn_rate_rules_and_not_the_threshold_a
 
 
 def test_prometheus_is_connected_to_alertmanager():
-    alertmanagers = requests.get(f"{PROMETHEUS}/api/v1/alertmanagers", timeout=120).json()["data"]["activeAlertmanagers"]
+    response = requests.get(f"{PROMETHEUS}/api/v1/alertmanagers", timeout=120)
+    alertmanagers = response.json()["data"]["activeAlertmanagers"]
     assert [item["url"] for item in alertmanagers] == ["http://alertmanager:9093/api/v2/alerts"]
 
 
