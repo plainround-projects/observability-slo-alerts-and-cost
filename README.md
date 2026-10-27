@@ -69,7 +69,34 @@ burn_rate: 3 notifications, 3 actionable (100.0%)
 threshold -> burn_rate: 528 -> 3 notifications, actionable 0.6% -> 100.0%, every user-facing incident still alerted: True
 ```
 
-The threshold alerts notify 528 times in the week and 3 of those are inside a planted user-facing incident; the burn-rate set notifies 3 times and all 3 are. The lesson's own slow-burn numbers (`burn_rate_lesson`) produce no alert for the two-hour degradation. `make volume` prints the stored-volume and privacy table (its columns are the raw gateway and the protected gateway); `make live` prints how many seconds after the outage began the page reached the fake pager.
+What `make volume` prints (6,000 requests through each gateway, the same seeded traffic: 3% planted errors, 1% planted 1.4-second requests, 5% carrying the test email and the published test card number):
+
+```text
+                                        raw gateway   protected gateway
+traffic sent (requests)                        6000                6000
+trace bytes accepted by Tempo             3,166,028             433,512
+log bytes accepted by Loki                3,652,474           3,645,552
+error traces found / sent                   176/176             176/176
+slow traces found / sent                      61/61               61/61
+ordinary traces kept                          93.4%                4.8%
+test email found in stored traces               307                   0
+test card found in stored traces                307                   0
+test email found in logs                        307                   0
+test card found in logs                         307                   0
+stored trace volume reduced by 86.3%
+```
+
+The 93.4% for the raw gateway is the search missing a few traces that were still in Tempo's ingester (the planted errors and slow requests missed by the search are looked up one by one, which is why those rows are exact); the raw gateway stores every trace. Logs are not sampled, so their volume is unchanged; only their content is.
+
+What `make live` prints (about six minutes; the timing depends on the 5-second evaluation interval, the 5-second group wait and your machine):
+
+```text
+warm-up: 120 s of healthy traffic
+outage: every request fails for 180 s
+page 'AvailabilityBudgetFastBurn' (page) arrived 137 s after the outage began
+```
+
+The threshold alerts notify 528 times in the week and 3 of those are inside a planted user-facing incident; the burn-rate set notifies 3 times and all 3 are. The lesson's own slow-burn numbers (`burn_rate_lesson`) produce no alert for the two-hour degradation.
 
 
 ## Done when: the lesson's checklist and the proof for each line
