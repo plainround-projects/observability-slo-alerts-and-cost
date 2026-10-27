@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ PROTECTED_CONFIG = "./observability/collector/gateway.yaml"
 SETTLE_SECONDS = 45.0
 SEARCH_LIMIT = 20_000
 SAMPLE_BODIES = 10
+ORDINARY_SAMPLE = 300
 EMAIL_FRAGMENT = "test-user-redact-me"
 
 
@@ -160,7 +162,11 @@ class VolumeScenario:
 
         found_errors = stored(traffic.error_traces, exact=True)
         found_slow = stored(traffic.slow_traces, exact=True)
-        found_ordinary = stored(traffic.ordinary_traces)
+        # Ordinary traces are thousands; a seeded sample is looked up exactly, which is what the kept share is.
+        sample = random.Random(self._seed).sample(
+            traffic.ordinary_traces, min(ORDINARY_SAMPLE, len(traffic.ordinary_traces))
+        )
+        found_ordinary = [trace_id for trace_id in sample if self._tempo.trace_json(trace_id) is not None]
         personal = stored(traffic.personal_data_traces, exact=True)
         email_hits = self._tempo.search(
             f'{{ span.customer.email =~ ".*{EMAIL_FRAGMENT}.*" }}', *window, limit=SEARCH_LIMIT
@@ -180,7 +186,7 @@ class VolumeScenario:
             errors_found=len(found_errors),
             slow_sent=len(traffic.slow_traces),
             slow_found=len(found_slow),
-            ordinary_sent=len(traffic.ordinary_traces),
+            ordinary_sent=len(sample),
             ordinary_found=len(found_ordinary),
             email_in_traces=max(len(email_hits), sum(TEST_EMAIL in body for body in bodies)),
             card_in_traces=max(len(card_hits), sum(TEST_CARD in body for body in bodies)),
@@ -206,7 +212,11 @@ def render_report(report: VolumeReport) -> str:
             f"{raw.slow_found}/{raw.slow_sent}",
             f"{protected.slow_found}/{protected.slow_sent}",
         ),
-        ("ordinary traces kept", f"{raw.ordinary_kept_share:.1%}", f"{protected.ordinary_kept_share:.1%}"),
+        (
+            f"ordinary traces kept (sample of {raw.ordinary_sent})",
+            f"{raw.ordinary_kept_share:.1%}",
+            f"{protected.ordinary_kept_share:.1%}",
+        ),
         ("test email found in stored traces", raw.email_in_traces, protected.email_in_traces),
         ("test card found in stored traces", raw.card_in_traces, protected.card_in_traces),
         ("test email found in logs", raw.email_in_logs, protected.email_in_logs),

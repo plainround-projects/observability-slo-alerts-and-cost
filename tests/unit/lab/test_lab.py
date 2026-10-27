@@ -122,6 +122,8 @@ class FakeTempo:
         return self.bytes
 
     def trace_json(self, trace_id):
+        if not self._raw() and trace_id.startswith("o"):
+            return None
         return json.dumps({"id": trace_id, "customer.email": TEST_EMAIL if self._raw() else "<email>"})
 
     def search(self, traceql, start, end, limit=0):

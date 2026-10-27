@@ -72,21 +72,21 @@ threshold -> burn_rate: 528 -> 3 notifications, actionable 0.6% -> 100.0%, every
 What `make volume` prints (6,000 requests through each gateway, the same seeded traffic: 3% planted errors, 1% planted 1.4-second requests, 5% carrying the test email and the published test card number):
 
 ```text
-                                        raw gateway   protected gateway
-traffic sent (requests)                        6000                6000
-trace bytes accepted by Tempo             3,166,028             433,512
-log bytes accepted by Loki                3,652,474           3,645,552
-error traces found / sent                   176/176             176/176
-slow traces found / sent                      61/61               61/61
-ordinary traces kept                          93.4%                4.8%
-test email found in stored traces               307                   0
-test card found in stored traces                307                   0
-test email found in logs                        307                   0
-test card found in logs                         307                   0
-stored trace volume reduced by 86.3%
+                                           raw gateway   protected gateway
+traffic sent (requests)                           6000                6000
+trace bytes accepted by Tempo                2,746,057             489,386
+log bytes accepted by Loki                   3,660,575           3,650,596
+error traces found / sent                      176/176             176/176
+slow traces found / sent                         61/61               61/61
+ordinary traces kept (sample of 300)            100.0%                4.3%
+test email found in stored traces                  307                   0
+test card found in stored traces                   307                   0
+test email found in logs                           307                   0
+test card found in logs                            307                   0
+stored trace volume reduced by 82.2%
 ```
 
-The 93.4% for the raw gateway is the search missing a few traces that were still in Tempo's ingester (the planted errors and slow requests missed by the search are looked up one by one, which is why those rows are exact); the raw gateway stores every trace. Logs are not sampled, so their volume is unchanged; only their content is.
+The ordinary-trace row looks up a seeded sample of 300 ordinary traces one by one, so it is exact for the sample: the raw gateway stores all of them, the protected gateway about the 5% its probabilistic policy allows. Traces for the planted errors and slow requests are searched first and the few the search missed are looked up one by one, so those rows are exact. Logs are not sampled, so their volume is unchanged; only their content is.
 
 What `make live` prints (about six minutes; the timing depends on the 5-second evaluation interval, the 5-second group wait and your machine):
 
