@@ -1,0 +1,185 @@
+# The lab on one laptop: the checkout service, a Collector gateway that samples and redacts, Tempo, Loki, Prometheus
+# with Alertmanager and a fake pager, Grafana, and (profile "replay") a second Prometheus that serves the replayed week.
+# Every host port is bound to 127.0.0.1 only. Versions are pinned to the ones the lesson names.
+name: observability-slo-alerts-and-cost
+
+services:
+  checkout:
+    build: .
+    image: observability-slo-alerts-and-cost:dev
+    command: ["opentelemetry-instrument", "slo-service"]
+    environment:
+      BIND_HOST: 0.0.0.0
+      SERVICE_PORT: "8080"
+      # Lab only: lets a request ask to fail or run slowly, so the scenarios can plant known incidents.
+      ALLOW_SIMULATION: "true"
+      OTEL_SERVICE_NAME: checkout
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-gateway:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
+      OTEL_RESOURCE_ATTRIBUTES: service.version=0.1.0,deployment.environment=local
+      OTEL_PYTHON_FLASK_EXCLUDED_URLS: healthz
+      LOG_LEVEL: INFO
+    ports:
+      - "127.0.0.1:${SERVICE_HOST_PORT:-28083}:8080"
+    depends_on:
+      otel-gateway: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "slo-health", "--url", "http://localhost:8080/healthz", "--timeout", "10"]
+      interval: 10s
+      timeout: 20s
+      retries: 30
+      start_period: 60s
+    stop_grace_period: 15s
+
+  otel-gateway:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      # make run switches this between gateway.raw.yaml and gateway.yaml.
+      - ${GATEWAY_CONFIG:-./observability/collector/gateway.yaml}:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:${GATEWAY_HEALTH_HOST_PORT:-13133}:13133"
+    depends_on:
+      tempo: { condition: service_healthy }
+      loki: { condition: service_healthy }
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:${TEMPO_HOST_PORT:-3200}:3200"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3200/ready | grep -q ready"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+  loki:
+    image: grafana/loki:3.1.1
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./observability/loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:${LOKI_HOST_PORT:-3100}:3100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3100/ready | grep -q ready"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2d
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
+    depends_on:
+      alertmanager: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+  # Serves the backfilled week (make replay). It loads no rules: the replay evaluates them at each historical step.
+  prometheus-replay:
+    image: prom/prometheus:v2.54.1
+    profiles: ["replay"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ./observability/prometheus/replay/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - replay-data:/prometheus
+    ports:
+      - "127.0.0.1:${REPLAY_HOST_PORT:-9091}:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:9093/-/healthy"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+    depends_on:
+      pager: { condition: service_healthy }
+
+  pager:
+    build: .
+    image: observability-slo-alerts-and-cost:dev
+    command: ["slo-pager"]
+    environment:
+      BIND_HOST: 0.0.0.0
+      PAGER_PORT: "8090"
+      PAGES_FILE: /data/pages.jsonl
+    volumes:
+      - pager-data:/data
+    ports:
+      - "127.0.0.1:${PAGER_HOST_PORT:-28084}:8090"
+    healthcheck:
+      test: ["CMD", "slo-health", "--url", "http://localhost:8090/healthz", "--timeout", "10"]
+      interval: 10s
+      timeout: 20s
+      retries: 30
+      start_period: 60s
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?run make up, which creates .env from .env.example}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_HOST_PORT:-3000}:3000"
+    depends_on:
+      tempo: { condition: service_healthy }
+      prometheus: { condition: service_healthy }
+      loki: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/health | grep -q ok"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+volumes:
+  tempo-data:
+  loki-data:
+  prometheus-data:
+  replay-data:
+  pager-data:
+  grafana-data:

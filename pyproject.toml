@@ -1,0 +1,109 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "observability-slo-alerts-and-cost"
+version = "0.1.0"
+description = "Burn-rate alerts on availability and latency SLOs replacing noisy threshold alerts, measured on a replayed week, plus a Collector gateway that tail-samples traces and redacts personal data before anything is stored."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Sumit Srivastava" }]
+dependencies = [
+    "flask>=3.1,<4",
+    "waitress>=3.0,<4",
+    "requests>=2.32,<3",
+    "pyyaml>=6,<7",
+    "opentelemetry-distro>=0.66b1",
+    "opentelemetry-exporter-otlp-proto-http>=1.45,<2",
+    "opentelemetry-instrumentation-flask>=0.66b1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<10",
+    "pytest-cov>=5",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "import-linter>=2.0",
+    "pip-audit>=2.7",
+    "types-requests",
+    "types-PyYAML",
+]
+
+[project.scripts]
+slo-service = "slo_lab.interfaces.service_main:main"
+slo-pager = "slo_lab.interfaces.pager_main:main"
+slo-health = "slo_lab.interfaces.health_cli:main"
+slo-rules = "slo_lab.lab.rules_cli:main"
+slo-replay = "slo_lab.lab.replay_cli:main"
+slo-analyze = "slo_lab.lab.analyze_cli:main"
+slo-volume = "slo_lab.lab.volume_cli:main"
+slo-live = "slo_lab.lab.live_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "N", "C4", "RUF", "PT", "D100", "D101", "D103", "D104"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["opentelemetry.*", "waitress", "waitress.*"]
+ignore_missing_imports = true
+
+# Test functions are named for the behavior they check; annotating every one adds noise, not safety.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: needs the stack from docker-compose.yml (make up)",
+    "e2e: replays the week, sends live traffic and queries the stores (make up first)",
+]
+
+[tool.coverage.run]
+source = ["slo_lab"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.importlinter]
+root_package = "slo_lab"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: interfaces and lab -> infrastructure -> application -> domain, never upward"
+type = "layers"
+layers = [
+    "slo_lab.interfaces | slo_lab.lab",
+    "slo_lab.infrastructure",
+    "slo_lab.application",
+    "slo_lab.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain and application know nothing about web, YAML or telemetry libraries"
+type = "forbidden"
+source_modules = ["slo_lab.domain", "slo_lab.application"]
+forbidden_modules = ["flask", "requests", "yaml", "opentelemetry", "waitress"]
