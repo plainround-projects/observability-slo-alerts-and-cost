@@ -1,0 +1,5 @@
+# The replay instance serves only the backfilled week; it scrapes nothing and loads no rules, because the replay
+# evaluates rule expressions itself at every historical step.
+global:
+  scrape_interval: 1m
+scrape_configs: []

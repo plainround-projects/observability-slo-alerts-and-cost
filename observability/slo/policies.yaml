@@ -1,0 +1,18 @@
+# Burn-rate policies. A rule fires when the budget burns at `burn_rate` times the sustainable pace over BOTH windows.
+policies:
+  # The policy the live Prometheus runs.
+  default:
+    description: >-
+      Page when 2% of the 30-day budget would be spent in an hour (14.4x). Open a ticket when 1.4% would be spent in two
+      hours (5x), which is what a steady 3% error rate does to a 99.5% objective.
+    rules:
+      - { severity: page, burn_rate: 14.4, long_window: 1h, short_window: 5m }
+      - { severity: ticket, burn_rate: 5, long_window: 2h, short_window: 15m }
+
+  # The numbers the lesson's solution shows. Replayed for comparison only: its 6x over 6 hours cannot see a two-hour
+  # 3% degradation, because the six-hour window averages it down to about 1%.
+  lesson:
+    description: Page at 14.4x over 1h and 5m; ticket at 6x over 6h and 30m.
+    rules:
+      - { severity: page, burn_rate: 14.4, long_window: 1h, short_window: 5m }
+      - { severity: ticket, burn_rate: 6, long_window: 6h, short_window: 30m }

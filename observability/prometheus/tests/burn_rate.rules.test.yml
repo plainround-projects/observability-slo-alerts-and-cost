@@ -1,0 +1,127 @@
+# Replays fault scenarios through the generated burn-rate rules with promtool. Each scenario starts with an hour or
+# more of healthy traffic (500 requests a minute) so the one-hour and two-hour windows have history, as in production.
+# Run with: make test-rules
+rule_files:
+  - ../rules/burn_rate.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: an outage that spends 2 percent of the budget in an hour pages within minutes
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{route="/checkout",status="200"}'
+        values: "0+500x70 35000x40"
+      - series: 'http_requests_total{route="/checkout",status="500"}'
+        values: "0x70 0+500x40"
+      - series: 'http_requests_total{route="/healthz",status="200"}'
+        values: "0+4x400"
+    alert_rule_test:
+      - eval_time: 72m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 80m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              slo: availability
+            exp_annotations:
+              summary: "Availability error budget burning at 14.4x: 2.0% of the 30-day budget in 1h."
+              runbook: "Check the availability SLI panel, open an error or slow trace from the last 5m, and roll back or fix the cause."
+
+  - name: a 90 second blip pages no one because the one-hour window never agrees
+    interval: 30s
+    input_series:
+      - series: 'http_requests_total{route="/checkout",status="200"}'
+        values: "0+250x140 35000x3 35000+250x200"
+      - series: 'http_requests_total{route="/checkout",status="500"}'
+        values: "0x140 0+250x3 750x200"
+      - series: 'http_requests_total{route="/healthz",status="200"}'
+        values: "0+4x400"
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 71m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 72m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 75m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 80m
+        alertname: AvailabilityBudgetSlowBurn
+        exp_alerts: []
+
+  - name: a steady 3 percent leak opens a ticket and never pages
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{route="/checkout",status="200"}'
+        values: "0+500x120 60000+485x140"
+      - series: 'http_requests_total{route="/checkout",status="500"}'
+        values: "0+0x120 0+15x140"
+      - series: 'http_requests_total{route="/healthz",status="200"}'
+        values: "0+4x400"
+    alert_rule_test:
+      - eval_time: 3h
+        alertname: AvailabilityBudgetSlowBurn
+        exp_alerts: []
+      - eval_time: 3h50m
+        alertname: AvailabilityBudgetSlowBurn
+        exp_alerts:
+          - exp_labels:
+              severity: ticket
+              slo: availability
+            exp_annotations:
+              summary: "Availability error budget burning at 5x: 1.4% of the 30-day budget in 2h."
+              runbook: "Check the availability SLI panel, open an error or slow trace from the last 15m, and roll back or fix the cause."
+      - eval_time: 3h50m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts: []
+
+  - name: health checks do not dilute the error ratio
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{route="/checkout",status="200"}'
+        values: "0+500x70 35000x40"
+      - series: 'http_requests_total{route="/checkout",status="500"}'
+        values: "0x70 0+500x40"
+      - series: 'http_requests_total{route="/healthz",status="200"}'
+        values: "0+4000x110"
+    alert_rule_test:
+      - eval_time: 80m
+        alertname: AvailabilityBudgetFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              slo: availability
+            exp_annotations:
+              summary: "Availability error budget burning at 14.4x: 2.0% of the 30-day budget in 1h."
+              runbook: "Check the availability SLI panel, open an error or slow trace from the last 5m, and roll back or fix the cause."
+
+  - name: sustained slowness pages the latency SLO and ordinary speed does not
+    interval: 1m
+    input_series:
+      - series: 'http_request_duration_seconds_bucket{route="/checkout",le="0.3"}'
+        values: "0+490x70 34300x60"
+      - series: 'http_request_duration_seconds_count{route="/checkout"}'
+        values: "0+500x130"
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: LatencyBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 90m
+        alertname: LatencyBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 125m
+        alertname: LatencyBudgetFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              slo: latency
+            exp_annotations:
+              summary: "Latency error budget burning at 14.4x: 2.0% of the 30-day budget in 1h."
+              runbook: "Check the latency SLI panel, open an error or slow trace from the last 5m, and roll back or fix the cause."

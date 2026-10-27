@@ -1,0 +1,164 @@
+{
+  "uid": "replayed-week",
+  "title": "Replayed week",
+  "description": "The simulated week backfilled by make replay (start the replay Prometheus first).",
+  "tags": [
+    "observability",
+    "slo"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "editable": false,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Replayed week: 5-minute bad-request ratio",
+      "description": "The full outage, the two-hour degradation and the 90-second blip are visible; the CPU spike is not.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-replay"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-replay"
+          },
+          "expr": "1 - (sum(rate(http_requests_total{route!=\"/healthz\",status!~\"5..\"}[5m]))) / (sum(rate(http_requests_total{route!=\"/healthz\"}[5m])))",
+          "legendFormat": "bad ratio"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Replayed week: 6-hour bad-request ratio",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-replay"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-replay"
+          },
+          "expr": "1 - (sum(rate(http_requests_total{route!=\"/healthz\",status!~\"5..\"}[6h]))) / (sum(rate(http_requests_total{route!=\"/healthz\"}[6h])))",
+          "legendFormat": "bad ratio"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Replayed week: CPU use",
+      "description": "Bursts and one spike to 95%; none of it touches a user.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-replay"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-replay"
+          },
+          "expr": "cpu_usage_percent",
+          "legendFormat": "cpu %"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

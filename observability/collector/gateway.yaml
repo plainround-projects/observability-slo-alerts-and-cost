@@ -1,0 +1,93 @@
+# The gateway: every service sends here; this is where traces are sampled and personal data is removed before any
+# backend stores it. Order matters: redact first, so nothing sensitive sits in the sampler's memory or reaches a backend.
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Replaces the sensitive value inside an attribute or a log body and keeps the rest, so the field that held it (and
+  # what surrounded it) still helps debugging. Email addresses and 13 to 19 digit card-like numbers (spaces or dashes
+  # allowed between digits).
+  transform/redact:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - 'replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "<email>")'
+          - 'replace_all_patterns(attributes, "value", "\\b\\d(?:[ -]?\\d){12,18}\\b", "<card>")'
+    log_statements:
+      - context: log
+        statements:
+          - 'replace_pattern(body, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "<email>")'
+          - 'replace_pattern(body, "\\b\\d(?:[ -]?\\d){12,18}\\b", "<card>")'
+          - 'replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "<email>")'
+          - 'replace_all_patterns(attributes, "value", "\\b\\d(?:[ -]?\\d){12,18}\\b", "<card>")'
+
+  # Waits for a whole trace, then keeps every error, every trace over one second, and a small share of the rest.
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 50000
+    expected_new_traces_per_sec: 100
+    policies:
+      - name: keep-every-error
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: keep-every-slow-trace
+        type: latency
+        latency:
+          threshold_ms: 1000
+      - name: keep-a-small-share-of-the-rest
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 5
+
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: warn
+    metrics:
+      level: basic
+      address: 0.0.0.0:8888
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/redact, tail_sampling, batch]
+      exporters: [otlp/tempo]
+    # Metrics are never sampled or redacted here: the SLIs must count every request, and metric labels are bounded.
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/redact, batch]
+      exporters: [otlphttp/loki]

@@ -1,0 +1,20 @@
+# The alerts most teams start with: a cause (CPU) and a symptom without a threshold (any single 5xx).
+# Replayed over the simulated week to measure how noisy they are; never loaded by the live Prometheus.
+groups:
+  - name: threshold
+    rules:
+      - alert: HighCPU
+        expr: cpu_usage_percent > 80
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: CPU is above 80%.
+          runbook: Check what is running; CPU alone does not say whether any user is affected.
+      - alert: AnyError
+        expr: increase(http_requests_total{status=~"5.."}[1m]) > 0
+        labels:
+          severity: page
+        annotations:
+          summary: At least one 5xx in the last minute.
+          runbook: Check the error rate; a single error is usually noise.

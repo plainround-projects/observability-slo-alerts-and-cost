@@ -1,0 +1,19 @@
+# Every alert goes to the fake pager's webhook, which counts and timestamps it.
+route:
+  receiver: fake-pager
+  group_by: [alertname]
+  group_wait: 5s
+  group_interval: 15s
+  repeat_interval: 12h
+
+# While the fast-burn page for an SLO is firing, its slow-burn ticket adds nothing.
+inhibit_rules:
+  - source_matchers: [severity="page"]
+    target_matchers: [severity="ticket"]
+    equal: [slo]
+
+receivers:
+  - name: fake-pager
+    webhook_configs:
+      - url: http://pager:8090/webhook
+        send_resolved: false

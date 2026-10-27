@@ -1,0 +1,20 @@
+# The service level objectives, as code. `make rules` turns these and policies.yaml into the burn-rate alert rules.
+# __WINDOW__ is replaced by each alert window (1h, 5m, 2h, 15m ...).
+window_days: 30
+
+slos:
+  - name: availability
+    objective: 0.995
+    description: >-
+      A valid request is any request to a route other than /healthz (health checks always succeed, so counting them
+      would hide real errors). A good request is a valid one that did not end in a 5xx.
+    good: sum(rate(http_requests_total{route!="/healthz",status!~"5.."}[__WINDOW__]))
+    valid: sum(rate(http_requests_total{route!="/healthz"}[__WINDOW__]))
+
+  - name: latency
+    objective: 0.95
+    description: >-
+      A valid request is any request to a route other than /healthz. A good request is a valid one that finished within
+      300 ms (the le="0.3" histogram bucket).
+    good: sum(rate(http_request_duration_seconds_bucket{route!="/healthz",le="0.3"}[__WINDOW__]))
+    valid: sum(rate(http_request_duration_seconds_count{route!="/healthz"}[__WINDOW__]))
