@@ -32,7 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     start_epoch = int(time.time()) // 3600 * 3600 - DAYS * 86400
     replay = WeekReplay(
         Compose(root, env),
-        PrometheusRangeEvaluator(f"http://127.0.0.1:{env.get('REPLAY_HOST_PORT', '9091')}"),
+        PrometheusRangeEvaluator(f"http://127.0.0.1:{env.get('REPLAY_HOST_PORT', '29091')}"),
         args.work,
     )
     if args.reuse:

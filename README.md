@@ -19,7 +19,7 @@ Burn-rate alerts on availability and latency SLOs that replace noisy threshold a
 | Images | `otel/opentelemetry-collector-contrib:0.111.0`, `grafana/tempo:2.6.1`, `grafana/loki:3.1.1`, `prom/prometheus:v2.54.1`, `prom/alertmanager:v0.27.0`, `grafana/grafana:11.2.0`; `python:3.12.8-slim-bookworm` is the base of the service image | pulled by Docker on first `make up` |
 | Python packages | Flask, waitress, requests, PyYAML and the OpenTelemetry distro, exporter and Flask instrumentation at run time; pytest, pytest-cov, ruff, mypy, import-linter, pip-audit for development. All pinned with hashes in `requirements.lock` and `requirements-dev.lock`; `make` installs them into `.venv/` | everything |
 
-No cloud account, no secrets. The values in `.env.example` are local-only placeholders; `make up` copies them to `.env`. Every port is bound to `127.0.0.1`: the checkout service on 28083, the fake pager 28084, Grafana 3000, Prometheus 9090, the replay Prometheus 9091, Tempo 3200, Loki 3100. Change any of them in `.env` if the port is taken.
+No cloud account, no secrets. The values in `.env.example` are local-only placeholders; `make up` copies them to `.env`. Every port is bound to `127.0.0.1`: the checkout service on 28083, the fake pager 28084, Grafana 23000, Prometheus 29090, the replay Prometheus 29091, Tempo 23200, Loki 23100. Change any of them in `.env` if the port is taken.
 
 ## Setup, run, test, stop
 
@@ -37,7 +37,7 @@ make audit           # known-vulnerability check of the locked dependencies
 make down            # stops everything, including the replay Prometheus, and deletes its data
 ```
 
-`make help` lists every target. `make volume` recreates the gateway twice, so do not run it while watching a dashboard you want to keep. Grafana is at <http://localhost:3000> (user `admin`, password `GRAFANA_ADMIN_PASSWORD` from `.env`): "SLO overview" for the live service and "Replayed week" for the backfilled one.
+`make help` lists every target. `make volume` recreates the gateway twice, so do not run it while watching a dashboard you want to keep. Grafana is at <http://localhost:23000> (user `admin`, password `GRAFANA_ADMIN_PASSWORD` from `.env`): "SLO overview" for the live service and "Replayed week" for the backfilled one.
 
 What `make replay` prints (a seeded week, so the numbers repeat; the 15 minutes of promtool backfilling and the PromQL replay take about 15 minutes on a busy laptop, a minute or two on a quiet one):
 

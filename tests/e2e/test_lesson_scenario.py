@@ -32,7 +32,7 @@ def replay(tmp_path_factory: pytest.TempPathFactory) -> ReplayReport:
     start_epoch = int(time.time()) // 3600 * 3600 - DAYS * 86400
     week = WeekReplay(
         Compose(ROOT, ENV),
-        PrometheusRangeEvaluator(f"http://127.0.0.1:{ENV.get('REPLAY_HOST_PORT', '9091')}"),
+        PrometheusRangeEvaluator(f"http://127.0.0.1:{ENV.get('REPLAY_HOST_PORT', '29091')}"),
         tmp_path_factory.mktemp("replay"),
         log=lambda _: None,
     )
@@ -44,8 +44,8 @@ def replay(tmp_path_factory: pytest.TempPathFactory) -> ReplayReport:
 def volume() -> VolumeReport:
     return VolumeScenario(
         Compose(ROOT, ENV),
-        TempoClient(f"http://127.0.0.1:{ENV.get('TEMPO_HOST_PORT', '3200')}"),
-        LokiClient(f"http://127.0.0.1:{ENV.get('LOKI_HOST_PORT', '3100')}"),
+        TempoClient(f"http://127.0.0.1:{ENV.get('TEMPO_HOST_PORT', '23200')}"),
+        LokiClient(f"http://127.0.0.1:{ENV.get('LOKI_HOST_PORT', '23100')}"),
         f"http://127.0.0.1:{ENV.get('SERVICE_HOST_PORT', '28083')}",
         requests=3000,
         log=lambda _: None,

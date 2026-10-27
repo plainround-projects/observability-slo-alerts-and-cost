@@ -42,7 +42,7 @@ services:
       # make run switches this between gateway.raw.yaml and gateway.yaml.
       - ${GATEWAY_CONFIG:-./observability/collector/gateway.yaml}:/etc/otelcol/config.yaml:ro
     ports:
-      - "127.0.0.1:${GATEWAY_HEALTH_HOST_PORT:-13133}:13133"
+      - "127.0.0.1:${GATEWAY_HEALTH_HOST_PORT:-23133}:13133"
     depends_on:
       tempo: { condition: service_healthy }
       loki: { condition: service_healthy }
@@ -54,7 +54,7 @@ services:
       - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo-data:/var/tempo
     ports:
-      - "127.0.0.1:${TEMPO_HOST_PORT:-3200}:3200"
+      - "127.0.0.1:${TEMPO_HOST_PORT:-23200}:3200"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:3200/ready | grep -q ready"]
       interval: 10s
@@ -69,7 +69,7 @@ services:
       - ./observability/loki/loki.yaml:/etc/loki/loki.yaml:ro
       - loki-data:/loki
     ports:
-      - "127.0.0.1:${LOKI_HOST_PORT:-3100}:3100"
+      - "127.0.0.1:${LOKI_HOST_PORT:-23100}:3100"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:3100/ready | grep -q ready"]
       interval: 10s
@@ -88,7 +88,7 @@ services:
       - ./observability/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     ports:
-      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
+      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-29090}:9090"
     depends_on:
       alertmanager: { condition: service_healthy }
     healthcheck:
@@ -110,7 +110,7 @@ services:
       - ./observability/prometheus/replay/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - replay-data:/prometheus
     ports:
-      - "127.0.0.1:${REPLAY_HOST_PORT:-9091}:9090"
+      - "127.0.0.1:${REPLAY_HOST_PORT:-29091}:9090"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:9090/-/healthy"]
       interval: 10s
@@ -164,7 +164,7 @@ services:
       - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     ports:
-      - "127.0.0.1:${GRAFANA_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${GRAFANA_HOST_PORT:-23000}:3000"
     depends_on:
       tempo: { condition: service_healthy }
       prometheus: { condition: service_healthy }

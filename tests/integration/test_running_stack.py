@@ -14,9 +14,9 @@ pytestmark = pytest.mark.integration
 
 ENV = os.environ
 SERVICE = f"http://127.0.0.1:{ENV.get('SERVICE_HOST_PORT', '28083')}"
-PROMETHEUS = f"http://127.0.0.1:{ENV.get('PROMETHEUS_HOST_PORT', '9090')}"
+PROMETHEUS = f"http://127.0.0.1:{ENV.get('PROMETHEUS_HOST_PORT', '29090')}"
 PAGER = f"http://127.0.0.1:{ENV.get('PAGER_HOST_PORT', '28084')}"
-GRAFANA = f"http://127.0.0.1:{ENV.get('GRAFANA_HOST_PORT', '3000')}"
+GRAFANA = f"http://127.0.0.1:{ENV.get('GRAFANA_HOST_PORT', '23000')}"
 BODY = {"items": [{"sku": "SKU-001", "quantity": 2}]}
 
 
@@ -28,8 +28,8 @@ def _query(expression: str) -> list[dict[str, object]]:
 
 
 def test_the_backends_the_pager_and_grafana_answer():
-    assert TempoClient(f"http://127.0.0.1:{ENV.get('TEMPO_HOST_PORT', '3200')}").ready()
-    assert LokiClient(f"http://127.0.0.1:{ENV.get('LOKI_HOST_PORT', '3100')}").ready()
+    assert TempoClient(f"http://127.0.0.1:{ENV.get('TEMPO_HOST_PORT', '23200')}").ready()
+    assert LokiClient(f"http://127.0.0.1:{ENV.get('LOKI_HOST_PORT', '23100')}").ready()
     assert requests.get(f"{PROMETHEUS}/-/healthy", timeout=120).status_code == 200
     assert requests.get(f"{PAGER}/healthz", timeout=120).status_code == 200
     auth = ("admin", ENV.get("GRAFANA_ADMIN_PASSWORD", ""))

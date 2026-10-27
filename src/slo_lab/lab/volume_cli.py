@@ -32,11 +32,11 @@ def main(argv: list[str] | None = None) -> int:
     env = os.environ
     scenario = VolumeScenario(
         Compose(Path.cwd(), env),
-        TempoClient(f"http://127.0.0.1:{env.get('TEMPO_HOST_PORT', '3200')}"),
-        LokiClient(f"http://127.0.0.1:{env.get('LOKI_HOST_PORT', '3100')}"),
+        TempoClient(f"http://127.0.0.1:{env.get('TEMPO_HOST_PORT', '23200')}"),
+        LokiClient(f"http://127.0.0.1:{env.get('LOKI_HOST_PORT', '23100')}"),
         f"http://127.0.0.1:{env.get('SERVICE_HOST_PORT', '28083')}",
         args.requests,
-        gateway_ready=lambda: _gateway_ready(env.get("GATEWAY_HEALTH_HOST_PORT", "13133")),
+        gateway_ready=lambda: _gateway_ready(env.get("GATEWAY_HEALTH_HOST_PORT", "23133")),
     )
     print(render_report(scenario.run()))
     return 0
