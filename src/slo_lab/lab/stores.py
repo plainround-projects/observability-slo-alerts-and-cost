@@ -25,10 +25,16 @@ class LogLine:
 
 
 def _get(url: str, **kwargs: Any) -> requests.Response:
-    try:
-        return requests.get(url, timeout=kwargs.pop("timeout", 30), **kwargs)
-    except requests.RequestException as error:
-        raise StoreError(f"GET {url} failed: {error}") from error
+    """GET with a generous timeout and three tries, because the stores can be slow on a busy machine."""
+    timeout = kwargs.pop("timeout", 120)
+    for attempt in range(3):
+        try:
+            return requests.get(url, timeout=timeout, **kwargs)
+        except requests.RequestException as error:
+            if attempt == 2:
+                raise StoreError(f"GET {url} failed: {error}") from error
+            time.sleep(5.0)
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def metric_value(text: str, name: str) -> float:

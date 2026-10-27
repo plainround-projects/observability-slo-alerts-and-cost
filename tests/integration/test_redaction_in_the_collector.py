@@ -55,13 +55,15 @@ def collector_output(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
         capture_output=True,
     )  # fmt: skip
     try:
-        deadline = time.monotonic() + 120
-        while time.monotonic() < deadline:
+        deadline = time.monotonic() + 600
+        while True:
             try:
-                requests.get(f"http://127.0.0.1:{port}/", timeout=2)
+                requests.get(f"http://127.0.0.1:{port}/", timeout=5)
                 break
             except requests.RequestException:
-                time.sleep(2)
+                if time.monotonic() > deadline:
+                    pytest.fail("the Collector did not start listening within 10 minutes")
+                time.sleep(3)
         now = str(time.time_ns())
         body = {
             "resourceLogs": [{"resource": {"attributes": []}, "scopeLogs": [{"logRecords": [{
@@ -81,8 +83,8 @@ def collector_output(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
                 ],
             }]}]}]
         }  # fmt: skip
-        assert requests.post(f"http://127.0.0.1:{port}/v1/logs", json=body, timeout=30).status_code == 200
-        assert requests.post(f"http://127.0.0.1:{port}/v1/traces", json=span, timeout=30).status_code == 200
+        assert requests.post(f"http://127.0.0.1:{port}/v1/logs", json=body, timeout=180).status_code == 200
+        assert requests.post(f"http://127.0.0.1:{port}/v1/traces", json=span, timeout=180).status_code == 200
         time.sleep(3)
         yield subprocess.run(["docker", "logs", name], capture_output=True, text=True, check=True).stderr
     finally:

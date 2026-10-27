@@ -12,6 +12,9 @@ from slo_lab.lab.traffic import TEST_CARD, TEST_EMAIL, TrafficPlan, TrafficResul
 RAW_CONFIG = "./observability/collector/gateway.raw.yaml"
 PROTECTED_CONFIG = "./observability/collector/gateway.yaml"
 SETTLE_SECONDS = 45.0
+SEARCH_LIMIT = 20_000
+SAMPLE_BODIES = 10
+EMAIL_FRAGMENT = "test-user-redact-me"
 
 
 class GatewaySwitch(Protocol):
@@ -103,6 +106,8 @@ class VolumeScenario:
         send: Callable[[TrafficPlan], TrafficResult] = send_traffic,
         log: Callable[[str], None] = print,
         settle_seconds: float = SETTLE_SECONDS,
+        gateway_ready: Callable[[], bool] = lambda: True,
+        ready_timeout_seconds: float = 900.0,
     ) -> None:
         """Take the collaborators and the size of the traffic."""
         self._compose = compose
@@ -114,15 +119,25 @@ class VolumeScenario:
         self._send = send
         self._log = log
         self._settle = settle_seconds
+        self._gateway_ready = gateway_ready
+        self._ready_timeout = ready_timeout_seconds
 
     def run(self) -> VolumeReport:
         """Run the raw pass, then the protected pass."""
         return VolumeReport(self._pass(RAW_CONFIG), self._pass(PROTECTED_CONFIG))
 
+    def _wait_for_gateway(self) -> None:
+        """The Collector image has no shell, so compose cannot health-check it; poll its health_check extension."""
+        deadline = time.monotonic() + self._ready_timeout
+        while not self._gateway_ready():
+            if time.monotonic() > deadline:
+                raise TimeoutError("the gateway did not report healthy in time")
+            time.sleep(3)
+
     def _pass(self, config: str) -> PassResult:
         self._log(f"pass with {config}")
         self._compose.use_gateway_config(config)
-        time.sleep(3)
+        self._wait_for_gateway()
         trace_before, log_before = self._tempo.bytes_received(), self._loki.bytes_received()
         traffic = self._send(TrafficPlan(self._url, self._requests, self._seed, rate_per_second=80.0))
         self._log(f"  sent {traffic.sent} requests, statuses {dict(sorted(traffic.statuses.items()))}")
@@ -131,14 +146,28 @@ class VolumeScenario:
         log_bytes = self._loki.bytes_received() - log_before
         window = (traffic.started_at - 5, time.time() + 5)
 
-        def stored(trace_ids: list[str]) -> list[str]:
-            return [trace_id for trace_id in trace_ids if self._tempo.trace_json(trace_id) is not None]
+        # One search lists every trace the store holds for the service in the window; a lookup per trace would be
+        # thousands of slow requests.
+        held = set(self._tempo.search('{ resource.service.name = "checkout" }', *window, limit=SEARCH_LIMIT))
 
-        found_errors = stored(traffic.error_traces)
-        found_slow = stored(traffic.slow_traces)
+        def stored(trace_ids: list[str], exact: bool = False) -> list[str]:
+            found = [trace_id for trace_id in trace_ids if trace_id in held]
+            if exact:
+                # A search is approximate while data is in the ingester; the few ids it missed get a direct lookup.
+                missed = [trace_id for trace_id in trace_ids if trace_id not in held]
+                found += [trace_id for trace_id in missed if self._tempo.trace_json(trace_id) is not None]
+            return found
+
+        found_errors = stored(traffic.error_traces, exact=True)
+        found_slow = stored(traffic.slow_traces, exact=True)
         found_ordinary = stored(traffic.ordinary_traces)
-        personal = stored(traffic.personal_data_traces)
-        bodies = [self._tempo.trace_json(trace_id) or "" for trace_id in personal]
+        personal = stored(traffic.personal_data_traces, exact=True)
+        email_hits = self._tempo.search(
+            f'{{ span.customer.email =~ ".*{EMAIL_FRAGMENT}.*" }}', *window, limit=SEARCH_LIMIT
+        )
+        card_hits = self._tempo.search('{ span.payment.card =~ ".*4242.*" }', *window, limit=SEARCH_LIMIT)
+        # The search covers attribute values; reading a sample of whole stored traces covers everything else in them.
+        bodies = [self._tempo.trace_json(trace_id) or "" for trace_id in personal[:SAMPLE_BODIES]]
         email_log = self._loki.query(f'{{service_name="checkout"}} |= "{TEST_EMAIL}"', *window)
         card_log = self._loki.query(f'{{service_name="checkout"}} |= "{TEST_CARD}"', *window)
         return PassResult(
@@ -153,8 +182,8 @@ class VolumeScenario:
             slow_found=len(found_slow),
             ordinary_sent=len(traffic.ordinary_traces),
             ordinary_found=len(found_ordinary),
-            email_in_traces=sum(TEST_EMAIL in body for body in bodies),
-            card_in_traces=sum(TEST_CARD in body for body in bodies),
+            email_in_traces=max(len(email_hits), sum(TEST_EMAIL in body for body in bodies)),
+            card_in_traces=max(len(card_hits), sum(TEST_CARD in body for body in bodies)),
             email_in_logs=len(email_log),
             card_in_logs=len(card_log),
         )

@@ -14,7 +14,8 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/pip pip install --no-deps .
 
-RUN useradd --system --uid 10001 --no-create-home app
+# /data is where the fake pager keeps its pages; a named volume mounted there inherits this owner.
+RUN useradd --system --uid 10001 --no-create-home app && mkdir /data && chown app /data
 USER app
 
 # opentelemetry-instrument applies the automatic Flask instrumentation and reads the OTEL_* variables.

@@ -108,30 +108,30 @@ class FakeCompose:
 
 
 class FakeTempo:
-    """Stores a trace unless the gateway config in force is the protected one and the trace is 'ordinary'."""
+    """Holds every trace in the raw pass; in the protected pass it drops the ordinary ones and masks the values."""
 
     def __init__(self, compose):
         self.compose = compose
         self.bytes = 0.0
 
+    def _raw(self):
+        return self.compose.configs[-1] == RAW_CONFIG
+
     def bytes_received(self):
-        self.bytes += 1000.0 if self.compose.configs[-1] == RAW_CONFIG else 100.0
+        self.bytes += 1000.0 if self._raw() else 100.0
         return self.bytes
 
     def trace_json(self, trace_id):
-        raw = self.compose.configs[-1] == RAW_CONFIG
-        if raw or not trace_id.startswith("o"):
-            return json.dumps(
-                {
-                    "id": trace_id,
-                    "customer.email": TEST_EMAIL if raw else "<email>",
-                    "card": TEST_CARD if raw else "<card>",
-                }
-            )
-        return None
+        return json.dumps({"id": trace_id, "customer.email": TEST_EMAIL if self._raw() else "<email>"})
 
     def search(self, traceql, start, end, limit=0):
-        return []
+        everything = ["e1", "e2", "s1", "p1", "p2"] + [f"o{i}" for i in range(20)]
+        kept = everything if self._raw() else [t for t in everything if not t.startswith("o")]
+        if "customer.email" in traceql:
+            return ["p1", "p2"] if self._raw() else []
+        if "payment.card" in traceql:
+            return ["p1", "p2"] if self._raw() else []
+        return kept
 
 
 class FakeLoki:
@@ -318,3 +318,31 @@ def test_compose_commands_pass_the_gateway_config_and_backfill_runs_promtool(tmp
 
 def test_incident_helper_is_a_value_object():
     assert Incident("x", timedelta(0), timedelta(minutes=1), True).end == timedelta(minutes=1)
+
+
+def test_the_volume_scenario_waits_for_the_gateway_before_sending_and_gives_up_after_the_timeout(monkeypatch):
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    compose = FakeCompose()
+    polls: list[bool] = []
+    polls_before_each_send: list[int] = []
+    answers = iter([False, False, True])
+
+    def ready() -> bool:
+        polls.append(True)
+        return next(answers, True)
+
+    def send(plan):
+        polls_before_each_send.append(len(polls))
+        return _fake_send(plan)
+
+    VolumeScenario(
+        compose, FakeTempo(compose), FakeLoki(compose), "http://x", 25,
+        send=send, log=lambda _: None, settle_seconds=0.0, gateway_ready=ready,
+    ).run()  # fmt: skip
+    assert polls_before_each_send == [3, 4]
+    never = VolumeScenario(
+        FakeCompose(), FakeTempo(compose), FakeLoki(compose), "http://x", 25,
+        send=_fake_send, log=lambda _: None, gateway_ready=lambda: False, ready_timeout_seconds=0.0,
+    )  # fmt: skip
+    with pytest.raises(TimeoutError):
+        never.run()

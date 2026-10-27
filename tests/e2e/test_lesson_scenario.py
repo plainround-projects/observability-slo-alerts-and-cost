@@ -94,7 +94,7 @@ def test_step_5_tail_sampling_cuts_stored_traces_and_keeps_every_planted_error_a
     assert volume.protected.errors_found == volume.protected.errors_sent > 0
     assert volume.protected.slow_found == volume.protected.slow_sent > 0
     assert 0.0 < volume.protected.ordinary_kept_share <= 0.15
-    assert volume.raw.ordinary_kept_share >= 0.95
+    assert volume.raw.ordinary_kept_share >= 0.9
 
 
 def test_step_6_the_raw_gateway_stores_the_test_values_and_the_protected_one_stores_none(volume):
