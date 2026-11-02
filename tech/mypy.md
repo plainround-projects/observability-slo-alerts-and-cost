@@ -20,7 +20,7 @@ Type hints are documentation that a tool checks. In a layered design they also p
 
 mypy parses every file it is told to check (`files = ["src", "tests"]` in the configuration), builds a model of every function and class from the type hints, then infers the type of each expression and compares it with what is expected. For third-party libraries it needs **type information**. Many libraries ship it inside the package (a marker file named `py.typed`). Others have a separate "stubs" package (`types-requests`). A library with neither is reported as "missing imports" unless you list it under `ignore_missing_imports`.
 
-`strict = true` turns on a bundle of strict options: every function must be annotated, no implicit `Any`, no untyped calls from typed code, unused ignores are errors, and so on. `# type: ignore[code]` on one line tells mypy to skip that line's named error; a test uses it when it passes a wrong type on purpose.
+`strict = true` turns on a bundle of strict options: every function must be annotated, no implicit `Any`, no untyped calls from typed code, unused `# type: ignore` comments are errors, decorators without types are errors, returning `Any` from a function declared to return something else is an error, and names imported into a module are not re-exported unless it says so. `# type: ignore[code]` on one line tells mypy to skip that line's named error; a test uses it when it passes a wrong type on purpose.
 
 Python never checks hints at run time. A wrong hint changes nothing about how the program runs.
 

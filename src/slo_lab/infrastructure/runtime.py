@@ -15,7 +15,7 @@ class SleepDelay:
 
 
 class SequentialReferences:
-    """``ord-000001``, ``ord-000002`` and so on; thread-safe because ``itertools.count`` is."""
+    """``ord-000001``, then ``ord-000002``, then ``ord-000003``; thread-safe because ``itertools.count`` is."""
 
     def __init__(self) -> None:
         """Start at 1."""

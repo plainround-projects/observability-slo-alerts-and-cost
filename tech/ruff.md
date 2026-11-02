@@ -41,7 +41,7 @@ extend-exclude = ["tech"]
 select = ["E", "F", "I", "B", "UP", "SIM", "N", "C4", "RUF", "PT", "D100", "D101", "D103", "D104"]
 ```
 
-`select` lists the rule families that are on: `E` (pycodestyle errors), `F` (pyflakes), `I` (isort: import order), `B` (bugbear), `UP` (pyupgrade), `SIM` (simplify), `N` (pep8-naming), `C4` (comprehensions), `RUF` (Ruff-specific) and `PT` (pytest style). `D100`, `D101`, `D103`, `D104` are four specific docstring rules from the `pydocstyle` family: a docstring is required in every public module (D100), public class (D101), public function (D103) and package (D104). Other docstring rules (`D102` for methods and so on) are left off to keep the code readable.
+`select` lists the rule families that are on: `E` (pycodestyle errors), `F` (pyflakes), `I` (isort: import order), `B` (bugbear), `UP` (pyupgrade), `SIM` (simplify), `N` (pep8-naming), `C4` (comprehensions), `RUF` (Ruff-specific) and `PT` (pytest style). `D100`, `D101`, `D103`, `D104` are four specific docstring rules from the `pydocstyle` family: a docstring is required in every public module (D100), public class (D101), public function (D103) and package (D104). Other docstring rules (`D102` for public methods, `D105` for magic methods, `D107` for `__init__`) are left off to keep the code readable.
 
 ```toml
 [tool.ruff.lint.per-file-ignores]

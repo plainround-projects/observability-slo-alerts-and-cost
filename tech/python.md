@@ -134,7 +134,7 @@ WINDOW_TOKEN = "__WINDOW__"
 MINUTES_PER_DAY = 24 * 60
 ```
 
-`WINDOW_TOKEN = "__WINDOW__"` is a placeholder that appears inside the PromQL text of an SLI; the generator replaces it with `1h`, `5m` and so on. `MINUTES_PER_DAY = 24 * 60` is arithmetic written out so the number's meaning is visible.
+`WINDOW_TOKEN = "__WINDOW__"` is a placeholder that appears inside the PromQL text of an SLI; the generator replaces it with each alert window: `1h`, `5m`, `2h`, `15m`, `6h` or `30m`. `MINUTES_PER_DAY = 24 * 60` is arithmetic written out so the number's meaning is visible.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -1074,7 +1074,7 @@ class SleepDelay:
 
 
 class SequentialReferences:
-    """``ord-000001``, ``ord-000002`` and so on; thread-safe because ``itertools.count`` is."""
+    """``ord-000001``, then ``ord-000002``, then ``ord-000003``; thread-safe because ``itertools.count`` is."""
 
     def __init__(self) -> None:
         """Start at 1."""
