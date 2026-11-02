@@ -172,6 +172,7 @@ observability/
   collector/         gateway.yaml (redact, tail-sample) and gateway.raw.yaml (the positive control).
   alertmanager/ tempo/ loki/ grafana/   the rest of the pipeline and the dashboards as code.
 docs/                slo.md (the SLO document, lesson step 2) and the decision records in adr/.
+tech/                one beginner-level note per technology the repository uses, with every file quoted and explained (start at tech/README.md).
 docker-compose.yml   the stack (the replay Prometheus is the "replay" profile).   Dockerfile  the service and pager image.
 pyproject.toml       project metadata and every tool's configuration (ruff, mypy, pytest, import-linter).
 requirements*.lock   hash-pinned dependencies (runtime, and runtime plus development tools).
