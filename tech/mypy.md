@@ -77,10 +77,10 @@ Expected: `error: Incompatible return value type (got "int", expected "str")`.
 Expected: `Success: no issues found in 1 source file`.
 
 ```bash
-.venv/bin/mypy --show-error-codes -c "x: int = 'a'"
+.venv/bin/mypy --config-file= --show-error-codes -c "x: int = 'a'"
 ```
 
-Expected: an error line ending in `[assignment]`, the code you would put in `# type: ignore[assignment]`.
+Expected: an error line ending in `[assignment]`, the code you would put in `# type: ignore[assignment]`. (`--config-file=` with nothing after it ignores `pyproject.toml`, whose `files` setting would otherwise conflict with `-c`.)
 
 ```bash
 grep -rn "type: ignore" src tests | head
