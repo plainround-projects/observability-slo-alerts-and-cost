@@ -34,7 +34,7 @@ src = ["src", "tests"]
 extend-exclude = ["tech"]
 ```
 
-`line-length = 120` lets lines be up to 120 characters before the formatter wraps them. `target-version = "py312"` means "assume Python 3.12 syntax is allowed". `src = ["src", "tests"]` tells the import sorter that `three_signals` (under `src`) is first-party code, so it sorts its imports in a separate group after the third-party ones. `extend-exclude = ["tech"]` leaves this `tech/` folder out of every Ruff command. Ruff 0.17 also formats the Python code blocks inside Markdown files, and these notes quote excerpts of the code (single functions, a few lines, sometimes indented) that are not complete programs, so reformatting them would change the quotes.
+`line-length = 120` lets lines be up to 120 characters before the formatter wraps them. `target-version = "py312"` means "assume Python 3.12 syntax is allowed". `src = ["src", "tests"]` tells the import sorter that `slo_lab` (under `src`) is first-party code, so it sorts its imports in a separate group after the third-party ones. `extend-exclude = ["tech"]` leaves this `tech/` folder out of every Ruff command. Ruff 0.17 also formats the Python code blocks inside Markdown files, and these notes quote excerpts of the code (single functions, a few lines, sometimes indented) that are not complete programs, so reformatting them would change the quotes.
 
 ```toml
 [tool.ruff.lint]

@@ -295,7 +295,7 @@ def decode_id(value: str) -> str:
     return base64.b64decode(stripped + "=" * (-len(stripped) % 4)).hex()
 ```
 
-`decode_id` normalizes Tempo's ids (hex or base64) to lowercase hex, as in the sister tools.
+`decode_id` normalizes Tempo's ids (hex or base64) to lowercase hex.
 
 ## Try it yourself
 

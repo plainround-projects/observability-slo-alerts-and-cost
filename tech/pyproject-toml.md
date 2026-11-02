@@ -123,7 +123,7 @@ cat .venv/bin/slo-health
 Expected: a short Python script that imports `main` from `slo_lab.interfaces.health_cli` and runs it.
 
 ```bash
-.venv/bin/pip show observability-slo-alerts-and-cost | head -3
+.venv/bin/pip show observability-slo-alerts-and-cost | grep -E "^(Name|Version)"
 ```
 
 Expected: `Name: observability-slo-alerts-and-cost`, `Version: 0.1.0`.

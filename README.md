@@ -74,30 +74,34 @@ What `make volume` prints (6,000 requests through each gateway, the same seeded 
 ```text
                                            raw gateway   protected gateway
 traffic sent (requests)                           6000                6000
-trace bytes accepted by Tempo                2,746,057             489,386
-log bytes accepted by Loki                   3,660,575           3,650,596
+trace bytes accepted by Tempo                2,764,059             426,471
+log bytes accepted by Loki                   3,655,859           3,646,103
 error traces found / sent                      176/176             176/176
 slow traces found / sent                         61/61               61/61
-ordinary traces kept (sample of 300)            100.0%                4.3%
+ordinary traces kept (sample of 300)            100.0%                5.0%
 test email found in stored traces                  307                   0
 test card found in stored traces                   307                   0
 test email found in logs                           307                   0
 test card found in logs                            307                   0
-stored trace volume reduced by 82.2%
+stored trace volume reduced by 84.6%
 ```
 
 The ordinary-trace row looks up a seeded sample of 300 ordinary traces one by one, so it is exact for the sample: the raw gateway stores all of them, the protected gateway about the 5% its probabilistic policy allows. Traces for the planted errors and slow requests are searched first and the few the search missed are looked up one by one, so those rows are exact. Logs are not sampled, so their volume is unchanged; only their content is.
 
-What `make live` prints (about six minutes; the timing depends on the 5-second evaluation interval, the 5-second group wait and your machine):
+What `make live` prints (about six minutes; the timing depends on the 5-second evaluation interval, the 5-second group wait, how much healthy history the one-hour window already holds, and your machine; an earlier run on a stack that had been up longer took 137 s):
 
 ```text
 warm-up: 120 s of healthy traffic
 outage: every request fails for 180 s
-page 'AvailabilityBudgetFastBurn' (page) arrived 137 s after the outage began
+page 'AvailabilityBudgetFastBurn' (page) arrived 53 s after the outage began
 ```
 
 The threshold alerts notify 528 times in the week and 3 of those are inside a planted user-facing incident; the burn-rate set notifies 3 times and all 3 are. The lesson's own slow-burn numbers (`burn_rate_lesson`) produce no alert for the two-hour degradation.
 
+
+## Verified
+
+In a fresh clone of the committed repository on 2026-11-02 (macOS, Docker 24.0.6, Python 3.13 for the lab tools; load average 10 to 30 from other projects sharing the host): `make up` (0, `make health` printed nine `ok` lines), `make check` (ruff, mypy, import-linter, generated-rules freshness, promtool and amtool and Collector validation, 138 unit and configuration tests, promtool rule tests: all passed), `make test-integration` (8 passed, including the real Collector image redacting the test values), `make test-e2e` (7 passed in 7 minutes 18 seconds), `make run` (0, the transcripts above are from it), `make down` (0), clean tree afterwards. This run also exposed that `make health` referred to a module that did not exist; it was added (`src/slo_lab/lab/health_cli.py`) and is covered by tests.
 
 ## Done when: the lesson's checklist and the proof for each line
 

@@ -101,7 +101,7 @@ inhibit_rules:
 
 Single quotes outside, double quotes inside; `values: "0+500x70 35000x40"` is text in promtool's mini-language.
 
-**Anchors are not used** in this repository (the sister labs use them for shared environment); every service lists its own variables.
+**Anchors are not used** in this repository (an anchor, `&name`, names a block so `<<: *name` can copy it elsewhere); every service lists its own variables.
 
 **Reading it from code.** The configuration tests and the definitions reader use `yaml.safe_load`:
 
