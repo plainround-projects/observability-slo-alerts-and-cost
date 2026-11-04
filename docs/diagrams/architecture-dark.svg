@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="924" viewBox="0 0 1200 924" role="img" aria-labelledby="t d">
+<title id="t">Architecture of observability-slo-alerts-and-cost</title>
+<desc id="d">Two halves. In the replay half, a Traffic simulator backfills a week into Prometheus replay, a Replay evaluator reads the Threshold alerts and Burn-rate alerts and runs them as range queries, and writes pages to Page analysis. In the live half inside Docker Compose, live traffic posts to the Checkout service, which sends spans, logs and metrics to the Collector gateway. The gateway redacts and tail-samples, sends kept traces to Tempo and redacted logs to Loki, drops the rest, and Prometheus scrapes its metrics, evaluates the burn-rate rules and notifies Alertmanager, which sends a webhook to the Fake pager.</desc>
+<style>
+:root{--paper:#0d1117;--ink:#f5f4f8;--mute:#9a96ab;--accent:#6ec8ff;--good:#7ce0a1;--warn:#ffd166}
+text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;fill:var(--ink)}
+.title{font-family:Georgia,'Iowan Old Style','Times New Roman',serif;font-size:36px}
+.caption{font-size:16px;fill:var(--mute)}
+.name{font-size:20px;font-weight:600}
+.lane{font-size:17px;font-weight:600}
+.sub{font-size:15px;fill:var(--mute)}
+.label{font-size:15px}
+.tag{font-size:15px;fill:var(--mute)}
+.num{font-size:15px;font-weight:700;fill:var(--paper)}
+.legend{font-size:14px;fill:var(--mute)}
+.t-accent{fill:var(--accent)}
+.t-good{fill:var(--good)}
+.t-warn{fill:var(--warn)}
+.t-ink{fill:var(--ink)}
+.b{font-weight:600}
+.paper{fill:var(--paper);stroke:var(--mute);stroke-opacity:.3}
+.grid{fill:url(#grid)}
+.boundary{fill:var(--mute);fill-opacity:.035;stroke:var(--mute);stroke-opacity:.7;stroke-dasharray:6 5}
+.svc{fill:var(--accent);fill-opacity:.08;stroke:var(--accent);stroke-width:1.25}
+.store{fill:var(--mute);fill-opacity:.1;stroke:var(--mute);stroke-width:1.25}
+.rim{fill:none;stroke:var(--mute);stroke-width:1.25}
+.actor{fill:none;stroke:var(--mute);stroke-width:1.25}
+.slot{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-width:1}
+.note{fill:var(--warn);fill-opacity:.09;stroke:var(--warn);stroke-width:1}
+.win{fill:var(--good);fill-opacity:.09;stroke:var(--good);stroke-width:1}
+.hair{fill:none;stroke:var(--mute);stroke-opacity:.4;stroke-width:1}
+.zone{fill:var(--accent);fill-opacity:.045;stroke:var(--accent);stroke-width:1.25;stroke-dasharray:6 5}
+.stop{fill:none;stroke:var(--warn);stroke-width:4;stroke-linecap:round}
+.mask{fill:var(--paper)}
+.sync,.async,.read,.fail,.ok{fill:none}
+.sync{stroke:var(--accent);stroke-width:1.75;marker-end:url(#a-sync)}
+.async{stroke:var(--accent);stroke-width:1.75;stroke-dasharray:8 6;marker-end:url(#a-async)}
+.read{stroke:var(--mute);stroke-width:1.75;stroke-linecap:round;stroke-dasharray:1 6;marker-end:url(#a-read)}
+.fail{stroke:var(--warn);stroke-width:2;marker-end:url(#a-fail)}
+.ok{stroke:var(--good);stroke-width:1.75;marker-end:url(#a-ok)}
+.dot{fill:var(--accent)}
+.dot-w{fill:var(--warn)}
+.dot-g{fill:var(--good)}
+.head-sync,.head-async{stroke:var(--accent)}
+.head-sync{fill:var(--accent)}
+.head-async,.head-read{fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.head-read{stroke:var(--mute)}
+.head-fail{fill:var(--warn)}
+.head-ok{fill:var(--good)}
+.gridline{fill:none;stroke:var(--mute);stroke-opacity:.09}
+</style>
+<defs>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path class="gridline" d="M40 0H0V40"/></pattern>
+<marker id="a-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-sync" d="M0 0L10 5L0 10z"/></marker>
+<marker id="a-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-async" d="M1 1L9 5L1 9"/></marker>
+<marker id="a-read" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-read" d="M1 1L9 5L1 9"/></marker>
+<marker id="a-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-fail" d="M0 0L10 5L0 10z"/></marker>
+<marker id="a-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-ok" d="M0 0L10 5L0 10z"/></marker>
+</defs>
+<rect class="paper" x="0.5" y="0.5" width="1199" height="923" rx="16"/>
+<rect class="grid" x="1" y="1" width="1198" height="922" rx="16"/>
+<text class="title" x="48" y="68">A replayed week judges the alerts, a gateway cuts the data</text>
+<text class="caption" x="48" y="100">Replay compares threshold and burn-rate alerts on a backfilled week; the live stack redacts, samples and pages.</text>
+<rect class="boundary" x="48" y="132" width="1104" height="300" rx="14"/>
+<text class="tag" x="64" y="160">Replay, make replay: a week in a second Prometheus</text>
+<rect class="svc" x="72" y="184" width="240" height="84" rx="12"/>
+<text class="name" x="88" y="216">Traffic simulator</text>
+<text class="sub" x="88" y="240">a week at 30 s</text>
+<text class="sub" x="88" y="262">20,160 ticks</text>
+<path class="store" d="M432 192a120 12 0 0 1 240 0v76a120 12 0 0 1 -240 0z"/>
+<path class="rim" d="M432 192a120 12 0 0 0 240 0"/>
+<text class="name" x="552" y="228" text-anchor="middle">Prometheus replay</text>
+<text class="sub" x="552" y="252" text-anchor="middle">backfilled week</text>
+<rect class="note" x="792" y="184" width="344" height="100" rx="10"/>
+<text class="label b t-warn" x="808" y="214">threshold alerts: 528 pages</text>
+<text class="sub" x="808" y="240">3 inside a planted incident, 0.6%</text>
+<text class="sub" x="808" y="262">burn-rate alerts: 3 pages, all 3</text>
+<path class="store" d="M72 328a120 12 0 0 1 240 0v76a120 12 0 0 1 -240 0z"/>
+<path class="rim" d="M72 328a120 12 0 0 0 240 0"/>
+<text class="name" x="192" y="364" text-anchor="middle">Alert rules</text>
+<text class="sub" x="192" y="388" text-anchor="middle">threshold, burn-rate</text>
+<rect class="svc" x="432" y="324" width="240" height="84" rx="12"/>
+<text class="name" x="448" y="356">Replay evaluator</text>
+<text class="sub" x="448" y="380">range queries, 60 s</text>
+<text class="sub" x="448" y="402">applies for: durations</text>
+<rect class="svc" x="812" y="324" width="200" height="84" rx="12"/>
+<text class="name" x="828" y="356">Page analysis</text>
+<text class="sub" x="828" y="380">actionable or not</text>
+<path class="async" d="M312 228H432"/>
+<text class="label t-accent" x="324" y="218">OpenMetrics</text>
+<text class="label t-accent" x="324" y="250">promtool</text>
+<path class="read" d="M312 366H432"/>
+<text class="label t-ink" x="324" y="356">expressions</text>
+<path class="sync" d="M552 324V280"/>
+<text class="label t-accent" x="564" y="308">PromQL</text>
+<path class="async" d="M672 366H812"/>
+<text class="label t-accent" x="684" y="356">pages_*.jsonl</text>
+<rect class="boundary" x="232" y="456" width="920" height="404" rx="14"/>
+<text class="tag" x="248" y="484">Live stack, make live: Docker Compose</text>
+<rect class="actor" x="48" y="510" width="160" height="72" rx="36"/>
+<text class="name" x="128" y="542" text-anchor="middle">Live traffic</text>
+<text class="sub" x="128" y="564" text-anchor="middle">and the outage</text>
+<rect class="svc" x="384" y="504" width="224" height="84" rx="12"/>
+<text class="name" x="400" y="536">Checkout service</text>
+<text class="sub" x="400" y="560">SLIs, spans, logs</text>
+<rect class="svc" x="384" y="668" width="236" height="116" rx="12"/>
+<text class="name" x="400" y="700">Collector gateway</text>
+<text class="sub" x="400" y="724">redact, tail-sample</text>
+<text class="sub" x="400" y="746">keeps error, slow, 5%</text>
+<text class="sub" x="400" y="768">memory_limiter, batch</text>
+<path class="store" d="M748 512a85 12 0 0 1 170 0v76a85 12 0 0 1 -170 0z"/>
+<path class="rim" d="M748 512a85 12 0 0 0 170 0"/>
+<text class="name" x="833" y="548" text-anchor="middle">Tempo</text>
+<text class="sub" x="833" y="572" text-anchor="middle">kept traces</text>
+<path class="store" d="M748 628a85 12 0 0 1 170 0v76a85 12 0 0 1 -170 0z"/>
+<path class="rim" d="M748 628a85 12 0 0 0 170 0"/>
+<text class="name" x="833" y="664" text-anchor="middle">Loki</text>
+<text class="sub" x="833" y="688" text-anchor="middle">redacted logs</text>
+<path class="store" d="M748 744a85 12 0 0 1 170 0v76a85 12 0 0 1 -170 0z"/>
+<path class="rim" d="M748 744a85 12 0 0 0 170 0"/>
+<text class="name" x="833" y="780" text-anchor="middle">Prometheus</text>
+<text class="sub" x="833" y="804" text-anchor="middle">burn-rate rules</text>
+<rect class="slot" x="365" y="814" width="150" height="32" rx="6"/>
+<text class="label t-accent" x="440" y="835" text-anchor="middle">dropped traces</text>
+<rect class="svc" x="960" y="716" width="176" height="84" rx="12"/>
+<text class="name" x="976" y="748">Alertmanager</text>
+<text class="sub" x="976" y="772">grouped by name</text>
+<rect class="svc" x="960" y="590" width="176" height="84" rx="12"/>
+<text class="name" x="976" y="622">Fake pager</text>
+<text class="sub" x="976" y="646">counts webhooks</text>
+<rect class="note" x="936" y="476" width="200" height="100" rx="10"/>
+<text class="label b t-warn" x="952" y="506">gateway.raw.yaml</text>
+<text class="sub" x="952" y="532">stores 307 emails,</text>
+<text class="sub" x="952" y="554">protected: none</text>
+<path class="sync" d="M208 546H384"/>
+<text class="label t-accent" x="244" y="536">POST /checkout</text>
+<path class="async" d="M440 588V668"/>
+<text class="label t-accent" x="452" y="622">spans, logs,</text>
+<text class="label t-accent" x="452" y="642">and metrics</text>
+<path class="async" d="M620 688H640Q652 688 652 676V550Q652 538 664 538H748"/>
+<text class="label t-accent" x="670" y="528">traces</text>
+<path class="async" d="M620 728H664Q676 728 676 716V678Q676 666 688 666H748"/>
+<text class="label t-accent" x="690" y="656">logs</text>
+<path class="read" d="M620 768H748"/>
+<text class="label t-ink" x="632" y="758">scraped</text>
+<path class="async" d="M440 784V814"/>
+<text class="label t-accent" x="452" y="804">sampled out</text>
+<path class="async" d="M918 758H960"/>
+<path class="async" d="M1048 716V674"/>
+<text class="label t-accent" x="1060" y="700">webhook</text>
+<path class="sync" d="M48 880H112"/><text class="legend" x="124" y="885">sync call</text>
+<path class="async" d="M264 880H328"/><text class="legend" x="340" y="885">async message</text>
+<path class="read" d="M520 880H584"/><text class="legend" x="596" y="885">read</text>
+</svg>

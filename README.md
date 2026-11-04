@@ -9,6 +9,24 @@ Burn-rate alerts on availability and latency SLOs that replace noisy threshold a
 | **Level** | Advanced |
 | **Architecture** | [ARCHITECTURE.md](ARCHITECTURE.md), decisions in [docs/adr](docs/adr), the SLO document in [docs/slo.md](docs/slo.md) |
 
+## Architecture
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture-dark.svg">
+  <img alt="Two halves. Replay: a Traffic simulator backfills a week into Prometheus replay, and a Replay evaluator runs the Threshold alerts and Burn-rate alerts over it into Page analysis. Live: Live traffic reaches the Checkout service, and the Collector gateway redacts and tail-samples before Tempo and Loki, while Prometheus feeds Alertmanager and the Fake pager." src="docs/diagrams/architecture.svg">
+</picture>
+
+The Collector gateway is the one place that redacts and samples, so Tempo and Loki only ever see what is safe to store; the replay half never touches it.
+
+## How one run flows
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/flow-dark.svg">
+  <img alt="make run replays a week and compares 528 threshold pages with 3 burn-rate pages, compares a raw gateway with a protected one on 6,000 requests, then fails every request so the fast-burn page reaches the Fake pager." src="docs/diagrams/flow.svg">
+</picture>
+
+The amber rows are the noisy page count and the raw gateway that stores 307 test emails; the green box is the page arriving 53 s after the outage began.
+
 ## Prerequisites
 
 | Tool | Version | Used for |

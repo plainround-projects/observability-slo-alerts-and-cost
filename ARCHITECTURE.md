@@ -22,6 +22,8 @@ service, threshold alerts, burn-rate alerts, fake pager; and service, Collector 
 
 ## Data flow
 
+Drawn versions of this figure and of the walk-through: [the architecture](docs/diagrams/architecture.svg) and [one run](docs/diagrams/flow.svg).
+
 ```mermaid
 flowchart LR
     sim([Traffic simulator<br/>a week at 30 s]) -->|OpenMetrics<br/>promtool backfill| replay[(Prometheus replay)]

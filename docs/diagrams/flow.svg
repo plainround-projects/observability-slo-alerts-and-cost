@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="892" viewBox="0 0 1200 892" role="img" aria-labelledby="t d">
+<title id="t">One run of make run in observability-slo-alerts-and-cost</title>
+<desc id="d">make run simulates a week, backfills it into Prometheus replay and runs the alert sets as range queries: threshold alerts give 528 pages of which 3 are actionable. It then sends 6,000 requests through a raw gateway that stores 307 test emails and through the protected gateway that stores none, searches Tempo and Loki, and finally fails every request for 180 seconds so the fast-burn rule pages the Fake pager.</desc>
+<style>
+:root{--paper:#ffffff;--ink:#10243d;--mute:#52677f;--accent:#0a6aa8;--good:#19743f;--warn:#8a5a00}
+text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;fill:var(--ink)}
+.title{font-family:Georgia,'Iowan Old Style','Times New Roman',serif;font-size:36px}
+.caption{font-size:16px;fill:var(--mute)}
+.name{font-size:20px;font-weight:600}
+.lane{font-size:17px;font-weight:600}
+.sub{font-size:15px;fill:var(--mute)}
+.label{font-size:15px}
+.tag{font-size:15px;fill:var(--mute)}
+.num{font-size:15px;font-weight:700;fill:var(--paper)}
+.legend{font-size:14px;fill:var(--mute)}
+.t-accent{fill:var(--accent)}
+.t-good{fill:var(--good)}
+.t-warn{fill:var(--warn)}
+.t-ink{fill:var(--ink)}
+.b{font-weight:600}
+.paper{fill:var(--paper);stroke:var(--mute);stroke-opacity:.3}
+.grid{fill:url(#grid)}
+.boundary{fill:var(--mute);fill-opacity:.035;stroke:var(--mute);stroke-opacity:.7;stroke-dasharray:6 5}
+.svc{fill:var(--accent);fill-opacity:.08;stroke:var(--accent);stroke-width:1.25}
+.store{fill:var(--mute);fill-opacity:.1;stroke:var(--mute);stroke-width:1.25}
+.rim{fill:none;stroke:var(--mute);stroke-width:1.25}
+.actor{fill:none;stroke:var(--mute);stroke-width:1.25}
+.slot{fill:var(--accent);fill-opacity:.14;stroke:var(--accent);stroke-width:1}
+.note{fill:var(--warn);fill-opacity:.09;stroke:var(--warn);stroke-width:1}
+.win{fill:var(--good);fill-opacity:.09;stroke:var(--good);stroke-width:1}
+.hair{fill:none;stroke:var(--mute);stroke-opacity:.4;stroke-width:1}
+.zone{fill:var(--accent);fill-opacity:.045;stroke:var(--accent);stroke-width:1.25;stroke-dasharray:6 5}
+.stop{fill:none;stroke:var(--warn);stroke-width:4;stroke-linecap:round}
+.mask{fill:var(--paper)}
+.sync,.async,.read,.fail,.ok{fill:none}
+.sync{stroke:var(--accent);stroke-width:1.75;marker-end:url(#a-sync)}
+.async{stroke:var(--accent);stroke-width:1.75;stroke-dasharray:8 6;marker-end:url(#a-async)}
+.read{stroke:var(--mute);stroke-width:1.75;stroke-linecap:round;stroke-dasharray:1 6;marker-end:url(#a-read)}
+.fail{stroke:var(--warn);stroke-width:2;marker-end:url(#a-fail)}
+.ok{stroke:var(--good);stroke-width:1.75;marker-end:url(#a-ok)}
+.dot{fill:var(--accent)}
+.dot-w{fill:var(--warn)}
+.dot-g{fill:var(--good)}
+.head-sync,.head-async{stroke:var(--accent)}
+.head-sync{fill:var(--accent)}
+.head-async,.head-read{fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.head-read{stroke:var(--mute)}
+.head-fail{fill:var(--warn)}
+.head-ok{fill:var(--good)}
+.gridline{fill:none;stroke:var(--mute);stroke-opacity:.09}
+</style>
+<defs>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path class="gridline" d="M40 0H0V40"/></pattern>
+<marker id="a-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-sync" d="M0 0L10 5L0 10z"/></marker>
+<marker id="a-async" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-async" d="M1 1L9 5L1 9"/></marker>
+<marker id="a-read" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-read" d="M1 1L9 5L1 9"/></marker>
+<marker id="a-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-fail" d="M0 0L10 5L0 10z"/></marker>
+<marker id="a-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-ok" d="M0 0L10 5L0 10z"/></marker>
+</defs>
+<rect class="paper" x="0.5" y="0.5" width="1199" height="891" rx="16"/>
+<rect class="grid" x="1" y="1" width="1198" height="890" rx="16"/>
+<text class="title" x="48" y="68">One run of make run: replay, volume, live</text>
+<text class="caption" x="48" y="100">Rows R are the replay, V the volume run, L the live outage. Amber rows: the noisy pages and the raw gateway.</text>
+<rect class="actor" x="410" y="128" width="120" height="48" rx="24"/>
+<text class="lane" x="470" y="158" text-anchor="middle">make run</text>
+<rect class="svc" x="565" y="128" width="140" height="48" rx="10"/>
+<text class="lane" x="635" y="148" text-anchor="middle">Prometheus</text>
+<text class="lane" x="635" y="168" text-anchor="middle">replay, live</text>
+<rect class="svc" x="735" y="128" width="130" height="48" rx="10"/>
+<text class="lane" x="800" y="148" text-anchor="middle">Collector</text>
+<text class="lane" x="800" y="168" text-anchor="middle">gateway</text>
+<rect class="svc" x="890" y="128" width="120" height="48" rx="10"/>
+<text class="lane" x="950" y="148" text-anchor="middle">Tempo and</text>
+<text class="lane" x="950" y="168" text-anchor="middle">Loki</text>
+<rect class="svc" x="1030" y="128" width="120" height="48" rx="10"/>
+<text class="lane" x="1090" y="158" text-anchor="middle">Fake pager</text>
+<path class="hair" d="M470 176V752M635 176V752M800 176V752M950 176V752M1090 176V816"/>
+<path class="hair" d="M66 216V792"/>
+<circle class="dot" cx="66" cy="216" r="15"/>
+<text class="num" x="66" y="221" text-anchor="middle">R1</text>
+<text class="label b t-ink" x="96" y="212">Simulate and write a week</text>
+<text class="sub" x="96" y="232">20,160 ticks, OpenMetrics file</text>
+<rect class="slot" x="464" y="198" width="12" height="36" rx="4"/>
+<text class="label t-accent" x="486" y="221">write_week()</text>
+<circle class="dot" cx="66" cy="280" r="15"/>
+<text class="num" x="66" y="285" text-anchor="middle">R2</text>
+<text class="label b t-ink" x="96" y="276">Backfill a second Prometheus</text>
+<text class="sub" x="96" y="296">promtool writes TSDB blocks</text>
+<path class="sync" d="M470 280H635"/>
+<text class="label t-accent" x="486" y="270">promtool</text>
+<circle class="dot" cx="66" cy="344" r="15"/>
+<text class="num" x="66" y="349" text-anchor="middle">R3</text>
+<text class="label b t-ink" x="96" y="340">Run each alert set</text>
+<text class="sub" x="96" y="360">range query at 60 s steps</text>
+<path class="sync" d="M470 344H635"/>
+<text class="label t-accent" x="486" y="334">range query</text>
+<circle class="dot-w" cx="66" cy="408" r="15"/>
+<text class="num" x="66" y="413" text-anchor="middle">R4</text>
+<text class="label b t-warn" x="96" y="404">Count the pages</text>
+<text class="sub" x="96" y="424">528 pages, 3 actionable (0.6%)</text>
+<rect class="slot" x="464" y="390" width="12" height="36" rx="4"/>
+<text class="label t-accent" x="486" y="413">classify()</text>
+<circle class="dot-w" cx="66" cy="472" r="15"/>
+<text class="num" x="66" y="477" text-anchor="middle">V1</text>
+<text class="label b t-warn" x="96" y="468">Raw gateway as the control</text>
+<text class="sub" x="96" y="488">no sampling, no redaction</text>
+<path class="fail" d="M470 472H800"/>
+<text class="label t-warn" x="648" y="462">6,000 requests</text>
+<rect class="note" x="944" y="454" width="12" height="36" rx="4"/>
+<text class="label t-warn" x="966" y="477">307 emails</text>
+<circle class="dot" cx="66" cy="536" r="15"/>
+<text class="num" x="66" y="541" text-anchor="middle">V2</text>
+<text class="label b t-ink" x="96" y="532">Protected gateway</text>
+<text class="sub" x="96" y="552">trace bytes 2,764,059 to 426,471</text>
+<path class="sync" d="M470 536H800"/>
+<text class="label t-accent" x="648" y="526">6,000 requests</text>
+<rect class="slot" x="944" y="518" width="12" height="36" rx="4"/>
+<text class="label t-good" x="966" y="541">0 emails</text>
+<circle class="dot" cx="66" cy="600" r="15"/>
+<text class="num" x="66" y="605" text-anchor="middle">V3</text>
+<text class="label b t-ink" x="96" y="596">Search every backend</text>
+<text class="sub" x="96" y="616">176 of 176 error traces found</text>
+<path class="read" d="M950 600H470"/>
+<text class="label t-ink" x="812" y="590">0 test values</text>
+<circle class="dot-w" cx="66" cy="664" r="15"/>
+<text class="num" x="66" y="669" text-anchor="middle">L1</text>
+<text class="label b t-warn" x="96" y="660">Outage: every request fails</text>
+<text class="sub" x="96" y="680">healthy 2 min, then 180 s of 5xx</text>
+<path class="fail" d="M470 664H800"/>
+<text class="label t-warn" x="648" y="654">180 s of 5xx</text>
+<circle class="dot" cx="66" cy="728" r="15"/>
+<text class="num" x="66" y="733" text-anchor="middle">L1b</text>
+<text class="label b t-ink" x="96" y="724">The fast-burn rule fires</text>
+<text class="sub" x="96" y="744">Alertmanager sends one webhook</text>
+<path class="async" d="M635 728H1090"/>
+<text class="label t-accent" x="962" y="718">webhook</text>
+<circle class="dot-g" cx="66" cy="792" r="15"/>
+<text class="num" x="66" y="797" text-anchor="middle">L1c</text>
+<text class="label b t-ink" x="96" y="788">The pager records it</text>
+<text class="sub" x="96" y="808">AvailabilityBudgetFastBurn</text>
+<path class="ok" d="M1090 792H762"/>
+<rect class="win" x="424" y="772" width="338" height="40" rx="10"/>
+<text class="label b t-good" x="440" y="797">page arrived 53 s after the outage</text>
+<path class="sync" d="M48 848H112"/><text class="legend" x="124" y="853">sync call</text>
+<path class="async" d="M264 848H328"/><text class="legend" x="340" y="853">async message</text>
+<path class="read" d="M520 848H584"/><text class="legend" x="596" y="853">read</text>
+<path class="fail" d="M696 848H760"/><text class="legend" x="772" y="853">failure path</text>
+<path class="ok" d="M928 848H992"/><text class="legend" x="1004" y="853">result</text>
+</svg>
