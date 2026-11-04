@@ -18,7 +18,7 @@ service, threshold alerts, burn-rate alerts, fake pager; and service, Collector 
 | **Fake pager** (`slo_lab.interfaces.pager_main`) | counting and timestamping every webhook it receives (a JSON-lines file) | paging anyone |
 | **Threshold alerts** (`replay/threshold.rules.yml`) | the noisy baseline: `HighCPU` (above 80% for a minute) and `AnyError` (any 5xx in a minute) | being run live |
 | **Burn-rate alerts** (`rules/burn_rate.rules.yml`, generated) | the page and the ticket for each SLO | being edited by hand |
-| **Grafana 11.2.0** | two dashboards as code: the live SLIs and burn rates, and the replayed week | any data |
+| **Grafana 11.2.0** | two dashboards as code: the live SLIs and burn rates, and the replayed week. For a person to look at: none of the runs below uses it; only the health check and one integration test ask it whether its datasources answer | any data |
 
 ## Data flow
 
